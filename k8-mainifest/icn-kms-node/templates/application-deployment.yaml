@@ -1,0 +1,130 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "icn-kms-node.application.name" . }}
+  labels:
+    app: {{ template "icn-kms-node.name" . }}
+    chart: {{ template "icn-kms-node.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    timestamp: "{{ now | date "20060102150405" }}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "icn-kms-node.application.name" . }}
+      release: {{ .Release.Name }}
+  replicas: {{ .Values.application.replicas }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "icn-kms-node.application.name" . }}
+        release: {{ .Release.Name }}
+      annotations:
+        timestamp: "{{ now | date "20060102150405" }}"
+        checksum/rails-env-secret: {{ include (print $.Template.BasePath "/application-cm.yaml") . | sha256sum }}
+        checksum/nginx-env-cm: {{ include (print $.Template.BasePath "/nginx-cm.yaml") . | sha256sum }}
+        checksum/nginx-config-cm: {{ include (print $.Template.BasePath "/nginxConfig-cm.yaml") . | sha256sum }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ template "icn-kms-node.application.name" . }}
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+            weight: 100
+      restartPolicy: Always
+      volumes:
+      - name: etc-config
+        configMap:
+          name: {{ template "icn-kms-node.nginx.name" . }}-nginxconf
+          items:
+          - key: nginx.conf
+            path: nginx.conf 
+      - name: default-config-template
+        configMap:
+          name: {{ template "icn-kms-node.nginx.name" . }}
+          items:
+          - key: default.conf.template
+            path: default.conf.template
+      - name: cert-file
+        secret:
+          secretName: {{ .Values.nginx.tls.secretName }}
+          items:
+          - key: tls.crt
+            path: icn_tls.crt
+      - name: key-file
+        secret:
+          secretName: {{ .Values.nginx.tls.secretName }}
+          items:
+          - key: tls.key
+            path: icn_tls.key
+      serviceAccountName: {{ template "icn-kms-node.application.name" . }}
+      securityContext:
+        fsGroup: 1337
+      containers:
+      - name: node
+        image: {{ .Values.application.image.repository }}:{{ .Values.application.image.tag }}
+        imagePullPolicy: Always
+        command: ['/bin/sh']
+        args: ["-c", "npm run migrate -- up --scripts-prepend-node-path=true && node bin/www > /dev/null"]
+        livenessProbe:
+          httpGet:
+            path: /is_alive
+            port: 3000
+          failureThreshold: 60
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /is_alive
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        envFrom:
+        - configMapRef:
+            name: {{ template "icn-kms-node.application.name" . }}
+        - secretRef:
+            name: {{ template "icn-kms-node.application.name" . }}
+        resources:
+          requests:
+            memory: {{ .Values.node.resources.memory.request }}
+            cpu: {{ .Values.node.resources.cpu.request }}
+          limits:
+            memory: {{ .Values.node.resources.memory.limit }}
+            cpu: {{ .Values.node.resources.cpu.limit }}
+      - name: nginx
+        image: {{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}
+        livenessProbe:
+          tcpSocket:
+            port: 443
+        readinessProbe:
+          tcpSocket:
+            port: 443
+        volumeMounts:
+        - name: default-config-template
+          mountPath: /etc/nginx/templates
+        - name: etc-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: cert-file
+          mountPath: {{ .Values.nginx.tls.certFileLocation }}
+        - name: key-file
+          mountPath: {{ .Values.nginx.tls.keyFileLocation }}
+        envFrom:
+        - configMapRef:
+            name: {{ template "icn-kms-node.nginx-env.name" . }}
+        resources:
+          requests:
+            memory: {{ .Values.nginx.resources.memory.request }}
+            cpu: {{ .Values.nginx.resources.cpu.request }}
+          limits:
+            memory: {{ .Values.nginx.resources.memory.limit }}
+            cpu: {{ .Values.nginx.resources.cpu.limit }}

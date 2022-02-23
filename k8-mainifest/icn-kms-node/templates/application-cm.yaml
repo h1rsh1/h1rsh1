@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "icn-kms-node.application.name" . }}
+data:
+  {{- range $key, $value := .Values.application.env }}
+  {{$key}}: {{ $value | quote }}
+  {{- end}}
+  APPLICATION_HOST: https://{{ .Values.ingress.host }}
+  AWS_ROLE_SESSION_NAME: {{ template "icn-kms-node.application.name" . }}
+  PROJECT_NAME: kms-node
+  IAM_PROFILE_AUTH: "true"
+
+

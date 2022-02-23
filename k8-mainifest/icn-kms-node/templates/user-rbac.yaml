@@ -1,0 +1,57 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "icn-kms-node.name" . }}-admin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "icn-kms-node.name" . }}
+    chart: {{ template "icn-kms-node.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: Group
+    name: {{ .Release.Namespace }}-admin
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "icn-kms-node.name" . }}-edit
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "icn-kms-node.name" . }}
+    chart: {{ template "icn-kms-node.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+  - kind: Group
+    name: {{ .Release.Namespace }}-edit
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "icn-kms-node.name" . }}-view
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "icn-kms-node.name" . }}
+    chart: {{ template "icn-kms-node.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: Group
+    name: {{ .Release.Namespace }}-view
+    apiGroup: rbac.authorization.k8s.io

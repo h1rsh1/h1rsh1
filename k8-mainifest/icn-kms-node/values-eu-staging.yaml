@@ -1,0 +1,43 @@
+ingress:
+  host: kms.staging.eu.icapitalnetwork.com
+  public: true
+  tlsSecretName: eu-staging-wildcard-cert
+application:
+  external_secrets:
+    - staging/icn-kms-node/eu-central-1
+  env:
+    AWS_REGION: us-east-1
+    AWS_ACCOUNT: staging
+    PGTZ: UTC
+    FEATURE_STAGING: "false"
+    NODE_ENV: production
+    PORT: 3000
+    NUM_WORKERS: 8
+  iamRole: arn:aws:iam::445297264202:role/kms-staging-eur
+  image:
+    repository: 445297264202.dkr.ecr.eu-central-1.amazonaws.com/icn-kms-node/app
+    tag: staging
+  replicas: 4
+node:
+  resources:
+    cpu:
+      request: 120m
+      limit: 1000m
+    memory:
+      request: 1024Mi
+      limit: 2048Mi
+nginx:
+  image:
+    repository: nginx
+    tag: 1.20.1-alpine
+  resources:
+    cpu:
+      request: 60m
+      limit: 250m
+    memory:
+      request: 64Mi
+      limit: 256Mi
+  tls:
+    secretName: eu-staging-wildcard-cert
+    certFileLocation: /etc/ssl/certs
+    keyFileLocation: /etc/ssl/private
