@@ -1,9 +1,0 @@
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ template "icn-kms-node.nginx-env.name" . }}
-data:
-  SERVER_NAME: {{ .Values.ingress.host }}
-  NGINX_SSL_CERT: {{ .Values.nginx.tls.certFileLocation }}/icn_tls.crt
-  NGINX_SSL_KEY: {{ .Values.nginx.tls.keyFileLocation }}/icn_tls.key
